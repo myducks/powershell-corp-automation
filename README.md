@@ -1,36 +1,60 @@
-### Get-PCInfo-Advanced.ps1
+#### Parameters – Get-PCInfo-Advanced.ps1
 
-Collects a **detailed inventory** of a workstation or notebook using CIM/WMI and (optionally) Active Directory.
+- **ComputerName** – target computer name. If omitted, the script will ask interactively.
+- **Credential** – optional `Get-Credential` object for remote connections (different domain/user). If omitted, current user context is used.
+- **Export** – when present, results are also exported to CSV and JSON files.
+- **ExportDir** – directory where export files will be created (default: current directory).  
+  Files are named like: `PCInfo_HOSTNAME_YYYYMMDD_HHMMSS.csv/json`.
 
-This script is intended as a “corporate Swiss-army knife” for IT support and endpoint diagnostics.
+#### Examples – Get-PCInfo-Advanced.ps1
 
-**What it collects:**
+- Run locally, show info in console only:  
+  `.\Get-PCInfo-Advanced.ps1`
 
-- Basic system info (hostname, model, manufacturer, logged-on user, domain/workgroup)
-- OS details (edition, architecture, build, version, install date, last boot, uptime)
-- BIOS info (serial number, version, release date)
-- CPU, GPU, RAM modules and total memory
-- Local disks: size, free space and filesystem per drive
-- Network adapters: IPs, DNS servers, DHCP status
-- Battery status, estimated runtime, wear level, design/full capacity and charge cycles (if available)
-- Docking station summary (USB-C/Thunderbolt docks, DisplayLink, Dell/Lenovo/HP, etc.)
-- Monitors: manufacturer, model, serial, size (approx. diagonal), connection type
-- Active Directory computer object (OU and groups) – if RSAT AD module is installed
-- Network ports: top listening TCP ports and a sample of established connections
-- System/Application error events from the last 7 days
-- Installed updates summary (Win32_QuickFixEngineering + recent Windows Update successes)
-- Security & VPN:
-  - CrowdStrike (presence + version, if detected)
-  - Cisco Secure Client / AnyConnect (presence + version, if detected)
+- Run for a remote computer with current credentials:  
+  `.\Get-PCInfo-Advanced.ps1 -ComputerName PC1234`
 
+- Run for a remote computer with alternate credentials:  
+  `$cred = Get-Credential`  
+  `.\Get-PCInfo-Advanced.ps1 -ComputerName LAPTOP-42 -Credential $cred`
 
-#### Parameters
+- Run for a remote computer and export results to CSV + JSON:  
+  `.\Get-PCInfo-Advanced.ps1 -ComputerName PC1234 -Export -ExportDir "C:\Temp\PCReports"`
 
-```powershell
-[CmdletBinding()]
-param(
-    [string]$ComputerName = $(Read-Host "Computer name"),
-    [pscredential]$Credential,
-    [switch]$Export,
-    [string]$ExportDir = "."
-)
+> Tip: For best results, run from an elevated PowerShell session (Run as administrator) and make sure WinRM or DCOM access to the target host is allowed by your environment.
+
+---
+
+### Install-MsiSilent.ps1
+
+Generic helper for **silent installation of any MSI** with full logging.
+
+This script standardizes how you run `msiexec.exe` in quiet mode and automatically:
+- validates that the path points to an `.msi` file
+- creates a log directory (if it doesn’t exist)
+- generates a unique log file name with timestamp
+- runs `msiexec /i ... /qn /norestart /L*v <logfile>`
+- returns the exit code and prints a success / warning message
+
+#### Parameters – Install-MsiSilent.ps1
+
+- **Path** – full path to the MSI file (local path or UNC). Must exist.
+- **LogDirectory** – folder where the MSI log will be created (default: `.\Logs` next to the script).
+- **AdditionalArgs** – optional extra arguments passed to `msiexec.exe`  
+  (e.g. `TRANSFORMS=app.mst`, `ALLUSERS=1`, custom properties, etc.).
+
+#### Examples – Install-MsiSilent.ps1
+
+- Basic silent install with log:  
+  `.\Install-MsiSilent.ps1 -Path .\setup.msi`
+
+- Install from network share with additional msiexec arguments:  
+  `.\Install-MsiSilent.ps1 -Path \\SERVER\Share\App.msi -AdditionalArgs "TRANSFORMS=app.mst"`
+
+- Custom log directory:  
+  `.\Install-MsiSilent.ps1 -Path .\client.msi -LogDirectory 'C:\Logs\MSI'`
+
+---
+
+All scripts in this repository are designed to be reusable in different corporate environments.  
+Feel free to clone, adapt and extend them for your own tooling.
